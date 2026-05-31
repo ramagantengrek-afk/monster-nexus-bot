@@ -3,7 +3,7 @@ import os
 from discord.ext import commands
 
 # TOKEN dari Railway/GitHub ENV
-TOKEN = os.getenv("MTUwOTc1ODc0ODY0NDYxMDEyMA.GTO2OF.3km6AVV3eToL9-v-v6NqgfraCyEkb4Sq3UxJkg")
+TOKEN = os.getenv("DISCORD_TOKEN")
 
 # ID Pokétwo
 POKETWO_ID = 716390085896962058
