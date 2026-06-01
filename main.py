@@ -4,7 +4,7 @@ import random
 import aiosqlite
 from discord.ext import commands
 
-TOKEN = "TOKEN_BOT_KAMU_DISINI"
+TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
