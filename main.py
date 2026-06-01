@@ -11,171 +11,119 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-STARTERS = ["Bulbasaur", "Charmander", "Squirtle"]
+# ---------------- POKEMON + IMAGE ----------------
+POKEMON = {
+    "Pikachu": "https://img.pokemondb.net/artwork/large/pikachu.jpg",
+    "Eevee": "https://img.pokemondb.net/artwork/large/eevee.jpg",
+    "Charmander": "https://img.pokemondb.net/artwork/large/charmander.jpg",
+    "Bulbasaur": "https://img.pokemondb.net/artwork/large/bulbasaur.jpg",
+    "Squirtle": "https://img.pokemondb.net/artwork/large/squirtle.jpg",
+    "Dratini": "https://img.pokemondb.net/artwork/large/dratini.jpg",
+    "Mew": "https://img.pokemondb.net/artwork/large/mew.jpg"
+}
 
-WILD = ["Pidgey", "Rattata", "Pikachu", "Eevee", "Zubat"]
-
-# ---------------- DATABASE ----------------
+# ---------------- DB ----------------
 async def setup():
-    async with aiosqlite.connect("pokemon.db") as db:
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS users(
-            user_id INTEGER PRIMARY KEY
-        )
-        """)
-
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS pokemon(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            owner_id INTEGER,
-            name TEXT,
-            iv INTEGER
-        )
-        """)
-
+    async with aiosqlite.connect("game.db") as db:
         await db.execute("""
         CREATE TABLE IF NOT EXISTS spawn(
             guild_id INTEGER PRIMARY KEY,
-            name TEXT
+            name TEXT,
+            shiny INTEGER
         )
         """)
-
         await db.commit()
 
 
-# ---------------- READY ----------------
 @bot.event
 async def on_ready():
     await setup()
     print(f"BOT ONLINE: {bot.user}")
 
 
-# ---------------- USER COMMAND ----------------
-@bot.command()
-async def start(ctx):
-    async with aiosqlite.connect("pokemon.db") as db:
-        cur = await db.execute("SELECT user_id FROM users WHERE user_id=?", (ctx.author.id,))
-        if await cur.fetchone():
-            return await ctx.send("Kamu sudah daftar!")
-
-        await db.execute("INSERT INTO users(user_id) VALUES(?)", (ctx.author.id,))
-        await db.commit()
-
-    await ctx.send("Daftar sukses! ketik !pick")
-
-
-@bot.command()
-async def pick(ctx, name):
-    name = name.capitalize()
-
-    if name not in STARTERS:
-        return await ctx.send("Starter tidak valid!")
-
-    async with aiosqlite.connect("pokemon.db") as db:
-        cur = await db.execute("SELECT * FROM pokemon WHERE owner_id=?", (ctx.author.id,))
-        if await cur.fetchone():
-            return await ctx.send("Kamu sudah punya Pokémon!")
-
-        iv = random.randint(40, 100)
-
-        await db.execute(
-            "INSERT INTO pokemon(owner_id,name,iv) VALUES(?,?,?)",
-            (ctx.author.id, name, iv)
-        )
-        await db.commit()
-
-    await ctx.send(f"Kamu memilih {name} (IV {iv}%)")
-
-
-@bot.command()
-async def pokemon(ctx):
-    async with aiosqlite.connect("pokemon.db") as db:
-        cur = await db.execute("SELECT name,iv FROM pokemon WHERE owner_id=?", (ctx.author.id,))
-        data = await cur.fetchall()
-
-    if not data:
-        return await ctx.send("Belum punya Pokémon!")
-
-    msg = ""
-    for p in data:
-        msg += f"{p[0]} IV:{p[1]}%\n"
-
-    await ctx.send(msg)
-
-
-# ---------------- SPAWN (ADMIN) ----------------
+# ---------------- SPAWN (WITH IMAGE) ----------------
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def spawn(ctx):
 
-    poke = random.choice(WILD)
+    name = random.choice(list(POKEMON.keys()))
+    shiny = 1 if random.randint(1, 100) == 1 else 0
 
-    async with aiosqlite.connect("pokemon.db") as db:
+    async with aiosqlite.connect("game.db") as db:
         await db.execute(
-            "INSERT OR REPLACE INTO spawn(guild_id,name) VALUES(?,?)",
-            (ctx.guild.id, poke)
+            "INSERT OR REPLACE INTO spawn(guild_id,name,shiny) VALUES(?,?,?)",
+            (ctx.guild.id, name, shiny)
         )
         await db.commit()
 
-    await ctx.send(f"🌿 Pokémon muncul! ketik !catch {poke}")
+    embed = discord.Embed(
+        title="🌿 Pokémon Muncul!",
+        description=f"**{name}** muncul di alam liar!",
+        color=0x00ff00 if not shiny else 0xffd700
+    )
+
+    embed.set_image(url=POKEMON[name])
+
+    if shiny:
+        embed.add_field(name="✨ SHINY!", value="Langka banget!")
+
+    await ctx.send(embed=embed)
 
 
 # ---------------- CATCH ----------------
 @bot.command()
 async def catch(ctx, *, name):
 
-    async with aiosqlite.connect("pokemon.db") as db:
+    async with aiosqlite.connect("game.db") as db:
         cur = await db.execute(
-            "SELECT name FROM spawn WHERE guild_id=?",
+            "SELECT name,shiny FROM spawn WHERE guild_id=?",
             (ctx.guild.id,)
         )
-        spawn = await cur.fetchone()
+        data = await cur.fetchone()
 
-        if not spawn:
+        if not data:
             return await ctx.send("Tidak ada Pokémon!")
 
-        if spawn[0].lower() != name.lower():
+        if data[0].lower() != name.lower():
             return await ctx.send("Salah Pokémon!")
 
-        iv = random.randint(30, 100)
-
-        await db.execute(
-            "INSERT INTO pokemon(owner_id,name,iv) VALUES(?,?,?)",
-            (ctx.author.id, name, iv)
-        )
+        shiny = data[1]
 
         await db.execute("DELETE FROM spawn WHERE guild_id=?", (ctx.guild.id,))
         await db.commit()
 
-    await ctx.send(f"🎉 {ctx.author.mention} menangkap {name}!")
+    embed = discord.Embed(
+        title="🎉 Pokémon Ditangkap!",
+        description=f"{ctx.author.mention} menangkap **{name}**!",
+        color=0xffd700 if shiny else 0x3498db
+    )
+
+    embed.set_image(url=POKEMON[name])
+
+    if shiny:
+        embed.add_field(name="✨ SHINY!", value="WOW LANGKA!")
+
+    await ctx.send(embed=embed)
 
 
-# ---------------- ADMIN COMMAND ----------------
+# ---------------- POKÉDEX ----------------
 @bot.command()
-@commands.has_permissions(administrator=True)
-async def give(ctx, member: discord.Member, *, pokemon_name):
+async def dex(ctx, name):
 
-    iv = random.randint(1, 100)
+    name = name.capitalize()
 
-    async with aiosqlite.connect("pokemon.db") as db:
-        await db.execute(
-            "INSERT INTO pokemon(owner_id,name,iv) VALUES(?,?,?)",
-            (member.id, pokemon_name, iv)
-        )
-        await db.commit()
+    if name not in POKEMON:
+        return await ctx.send("Pokémon tidak ditemukan!")
 
-    await ctx.send(f"Diberikan {pokemon_name} ke {member.name}")
+    embed = discord.Embed(
+        title=f"📖 Pokédex - {name}",
+        description="Informasi Pokémon",
+        color=0x2ecc71
+    )
 
+    embed.set_image(url=POKEMON[name])
 
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def reset(ctx, member: discord.Member):
-
-    async with aiosqlite.connect("pokemon.db") as db:
-        await db.execute("DELETE FROM pokemon WHERE owner_id=?", (member.id,))
-        await db.commit()
-
-    await ctx.send(f"Pokémon {member.name} direset!")
+    await ctx.send(embed=embed)
 
 
 # ---------------- RUN ----------------
