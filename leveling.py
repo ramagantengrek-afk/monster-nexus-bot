@@ -1,3 +1,0 @@
-/rank
-/leaderboard
-/setlevelreward
