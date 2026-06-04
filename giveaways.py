@@ -1,3 +1,0 @@
-/gstart
-/greroll
-/gend
