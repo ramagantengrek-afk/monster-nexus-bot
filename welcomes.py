@@ -1,3 +1,0 @@
-/setwelcome
-/setautorole
-/setleave
