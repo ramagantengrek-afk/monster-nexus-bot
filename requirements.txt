@@ -1,8 +1,0 @@
-discord.py
-flask
-python-dotenv
-aiosqlite
-asyncpg
-aiohttp
-pillow
-gunicorn
