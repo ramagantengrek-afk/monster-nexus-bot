@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
-from ..utils.database import get_db_connection
-from ..utils.pokeapi import get_pokemon_data, calculate_iv
+from utils.database import get_db_connection
+from utils.pokeapi import get_pokemon_data, calculate_iv
 
 class Admin(commands.Cog):
     def __init__(self, bot):
