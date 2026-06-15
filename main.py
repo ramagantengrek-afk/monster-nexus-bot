@@ -28,4 +28,4 @@ class PokemonBot(commands.Bot):
 
 if __name__ == "__main__":
     bot = PokemonBot()
-    # bot.run(TOKEN)
+    bot.run(TOKEN)
