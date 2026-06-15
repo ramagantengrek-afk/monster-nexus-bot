@@ -1,9 +1,6 @@
 import sqlite3
 import os
-try:
-    from config import DB_PATH
-except ImportError:
-    from ..config import DB_PATH
+from config import DB_PATH
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
