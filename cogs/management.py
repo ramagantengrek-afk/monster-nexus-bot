@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from ..utils.database import get_db_connection
+from utils.database import get_db_connection
 
 class Management(commands.Cog):
     def __init__(self, bot):
