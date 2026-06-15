@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
 import random
-from ..utils.pokeapi import get_random_pokemon, calculate_iv
-from ..utils.database import get_db_connection
+from utils.pokeapi import get_random_pokemon, calculate_iv
+from utils.database import get_db_connection
 
 class Spawn(commands.Cog):
     def __init__(self, bot):
